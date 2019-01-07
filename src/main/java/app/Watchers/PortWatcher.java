@@ -2,18 +2,14 @@ package app.Watchers;
 
 import app.models.BlockChain;
 import org.apache.zookeeper.*;
-
-
 import java.util.List;
 
 import static app.controllers.ClientController.*;
-
 
 public class PortWatcher implements Watcher {
     private final BlockChain blockChain;
 
     public PortWatcher(BlockChain blockChain) {
-
         this.blockChain = blockChain;
         try {
             if (zk.exists(portRoot, null) == null) {
@@ -24,6 +20,7 @@ public class PortWatcher implements Watcher {
         }
     }
 
+    // INITIALIZE THE MEMBERSHIP SUV-FOLDER IF DOESN'T EXISTS, AND LISTENER
     public void init(){
         try {
             if (zk.exists(portRoot, this) == null) {
@@ -35,9 +32,9 @@ public class PortWatcher implements Watcher {
         }
     }
 
+    // LISTENER IMPLEMENTATION
     @Override
     public void process(WatchedEvent watchedEvent) {
-        System.out.println("port watched!");
         synchronized (blockChain) {
             try {
                 List<String> children = zk.getChildren(portRoot, this);

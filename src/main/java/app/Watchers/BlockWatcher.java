@@ -12,6 +12,8 @@ public class BlockWatcher implements Watcher {
     private final BlockChain blockChain;
     private int loc = 0;
 
+    // ==================================
+    // GETTERS AND SETTERS
     public int getLoc() {
         return loc;
     }
@@ -19,6 +21,7 @@ public class BlockWatcher implements Watcher {
     public void setLoc(int loc) {
         this.loc = loc;
     }
+    // ==================================
 
     public BlockWatcher(BlockChain blockChain) {
         this.blockChain = blockChain;
@@ -32,6 +35,7 @@ public class BlockWatcher implements Watcher {
 
     }
 
+    // SUBSCRIBE TO WATCHER
     public void init(){
         try {
             zk.getChildren(blockRoot, this);
@@ -40,9 +44,9 @@ public class BlockWatcher implements Watcher {
         }
     }
 
+    // LISTENER IMPLEMENTATION
     @Override
     public void process(WatchedEvent watchedEvent) {
-        System.out.println("block watched!");
         synchronized (blockChain) {
             try {
                 List<String> children = zk.getChildren(blockRoot, this);
@@ -50,7 +54,6 @@ public class BlockWatcher implements Watcher {
                 for (int i = loc; i < children.size(); i ++) {
                     String blockPath = children.get(i);
                     byte[] data = zk.getData(blockRoot + "/" + blockPath, true, null);
-                    System.out.println("child: " + new String(data));
                     blockChain.addPermenantBlock((new String(data)));
                 }
                 loc = children.size();

@@ -2,21 +2,15 @@ package app;
 
 import app.models.Block;
 import com.google.gson.Gson;
-import net.minidev.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.List;
 
 public class Utils {
 
+    // Returns a String of a valid html page
     public static String generateHelpHtml(){
         return "<!-- #######  YAY, I AM THE SOURCE EDITOR! #########-->\n" +
                 "<h1 style=\"color: #5e9ca0;\">Welcome to BlockChain Server</h1>\n" +
@@ -33,6 +27,9 @@ public class Utils {
                 "</ol>";
     }
 
+    /* Creates a Get HTTP Request and returns the matching response.
+        ASSUMPTION: parameters are already inserted correctly to url
+     */
     public static String getHTML(String urlToRead) throws Exception {
         StringBuilder result = new StringBuilder();
         URL url = new URL(urlToRead);
@@ -47,8 +44,10 @@ public class Utils {
         return result.toString();
     }
 
+    /* Creates a Post HTTP Request and returns the matching repsonse
+        ASSUMPTION: parameter is a block to be send.
+     */
     public static void postHTML(String urlToRead, Block b) throws Exception {
-
         URL object=new URL(urlToRead);
 
         HttpURLConnection con = (HttpURLConnection) object.openConnection();
@@ -59,17 +58,11 @@ public class Utils {
         con.setRequestMethod("POST");
 
         OutputStreamWriter wr = new OutputStreamWriter(con.getOutputStream());
-        System.out.println("-------------------------");
-        System.out.println(new Gson().toJson(b));
-        System.out.println("-------------------------");
         wr.write(new Gson().toJson(b));
         wr.flush();
-
-//display what returns the POST request
-
+        //display what returns the POST request
         int HttpResult = con.getResponseCode();
         if (HttpResult == HttpURLConnection.HTTP_OK) {
-
             System.out.println("okay");
         } else {
             System.out.println(con.getResponseMessage());

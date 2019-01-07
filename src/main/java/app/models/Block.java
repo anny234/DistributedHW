@@ -1,15 +1,11 @@
 package app.models;
 
-
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Block {
-
-
-
-    public List<String> transactions; //our data will be a simple message.
+    private List<String> transactions; //our data will be a simple message.
     public int port;
     public String timestamp;
 

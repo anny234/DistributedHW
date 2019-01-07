@@ -5,26 +5,15 @@ import app.Watchers.PortWatcher;
 import app.models.Block;
 import app.models.BlockChain;
 import app.models.RebootResponse;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.gson.*;
-import net.minidev.json.JSONArray;
-import net.minidev.json.JSONObject;
 import org.apache.zookeeper.*;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.hateoas.Resource;
 import org.springframework.web.bind.annotation.*;
-
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.sql.Timestamp;
 import java.util.*;
-
-import static app.Utils.getHTML;
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
 
@@ -41,7 +30,7 @@ public class ClientController implements Watcher{
     public ClientController(Environment env) {
 
         String zkHost = env.getProperty("zkHost");
-        int port = Integer.parseInt(env.getProperty("server.port"));
+        int port = Integer.parseInt(Objects.requireNonNull(env.getProperty("server.port")));
         try {
             ClientController.port = port;
             zk = new ZooKeeper(zkHost, 3000, this);
@@ -49,10 +38,10 @@ public class ClientController implements Watcher{
             portWatcher = new PortWatcher(blockChain);
             blockWatcher = new BlockWatcher(blockChain);
 
-
             //================= REBOOT SUPPORT =================
             // invalidate all previous blocks that hasn't been added yet
-            zk.create(blockRoot + "/", String.valueOf(-port + "~" + new Timestamp(System.currentTimeMillis()).toString()).getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE,
+            zk.create(blockRoot + "/", (-port + "~" + new Timestamp(System.currentTimeMillis()).toString()).getBytes(),
+                    ZooDefs.Ids.OPEN_ACL_UNSAFE,
                     CreateMode.PERSISTENT_SEQUENTIAL);
             // take current blockchain from alivePort that hasn't been rebooted
             List<String> alivePorts = zk.getChildren(portRoot, this);
@@ -71,6 +60,8 @@ public class ClientController implements Watcher{
         }
     }
 
+    //================= REBOOT SUPPORT =================
+    // this functions updates the missing block of the newly joined server.
     private void UpdateAllBlocks(List<String> ps) {
         int i = 0;
         while (true) {
@@ -86,21 +77,17 @@ public class ClientController implements Watcher{
                 blockWatcher.setLoc(res.getLoc());
                 return;
             } catch (Exception e) {
-                System.out.println("Something happened with reboot of chainblock");
                 e.printStackTrace();
             }
         }
     }
 
     @Override
-    public void process(WatchedEvent watchedEvent) {
-
-    }
+    public void process(WatchedEvent watchedEvent) { }
 
     /**
      * ==========================SERVER COMMUNICATION==================================
      */
-
 
     @GetMapping("restoreHelp")
     public @ResponseBody Block restoreHelp(@RequestParam("blockData") String blockData){
@@ -119,14 +106,13 @@ public class ClientController implements Watcher{
     @PostMapping("/receiveBlock")
     boolean recieveBlock(@RequestBody String blockJson) {
         synchronized (this) {
-            System.out.println("got a block from " + blockJson);
             Block block = new Gson().fromJson(blockJson, Block.class);
             blockChain.addPendingBlock(block);
         }
         return true;
     }
 
-
+    //================= REBOOT SUPPORT =================
     @GetMapping("/rebootBlocks")
     RebootResponse rebootBlocks() {
         RebootResponse b;
@@ -168,7 +154,6 @@ public class ClientController implements Watcher{
         return blockChain.getBlockSizeHistory();
     }
 
-
     @PostMapping("/addTransaction")
     String addTransaction(@RequestBody String data) {
         boolean success = false;
@@ -186,6 +171,5 @@ public class ClientController implements Watcher{
                 linkTo(methodOn(ClientController.class).getBlock(id)).withSelfRel(),
                 linkTo(methodOn(ClientController.class).all()).withRel("blocks"));
     }
-
 
 }

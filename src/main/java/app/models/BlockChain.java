@@ -4,24 +4,17 @@ import app.Utils;
 import app.controllers.ClientController;
 import com.google.gson.Gson;
 import org.apache.zookeeper.*;
-
 import java.net.URLEncoder;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.Collectors;
-
 import static app.Utils.postHTML;
 import static app.controllers.ClientController.*;
 
 public class BlockChain {
     private long start_batch = System.nanoTime();
-    private long end_batch;
-    private long start_send;
-    private long end_send;
-    private long batch_time;
-    private long send_time;
-    double ratio = 10;
-    double delta = 0.1;
+    private double ratio = 10;
+    private double delta = 0.1;
     private List<Block> blist = new ArrayList<>();
     private Map<Integer, List<Block>> pendingBlocks = new HashMap<>();
     private Block currentBlock = new Block(ClientController.port);
@@ -36,17 +29,15 @@ public class BlockChain {
     public boolean addTransaction(String data) {
         Boolean success = this.currentBlock.addTransaction(data);
         if (currentBlock.getSize() >= maxBlockSize) {
-            end_batch = System.nanoTime();
-            batch_time = end_batch - start_batch;
+            long end_batch = System.nanoTime();
+            long batch_time = end_batch - start_batch;
             Block candidateBlock = currentBlock.sendX(maxBlockSize);
             start_batch = System.nanoTime();
             try {
                 // first we send everyone the block
                 List<String> children = zk.getChildren(portRoot, null);
-                System.out.println("Sending to ports :)");
-                start_send = System.nanoTime();
+                long start_send = System.nanoTime();
                 for (String port : children){
-                    System.out.println("Sending to " + port);
                     if (Integer.parseInt(port) == ClientController.port){
                         this.addPendingBlock(candidateBlock);
                     }
@@ -66,8 +57,8 @@ public class BlockChain {
                 zk.create(blockRoot + "/", String.valueOf(port + "~" + candidateBlock.timestamp).getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE,
                         CreateMode.PERSISTENT_SEQUENTIAL);
                 // blocks won't be deleted before next demo
-                end_send = System.nanoTime();
-                send_time = end_send - start_send;
+                long end_send = System.nanoTime();
+                long send_time = end_send - start_send;
                 this.blockSizeHistory.add(maxBlockSize);
                 double current_ratio = (double) batch_time / send_time;
                 if (current_ratio-ratio > delta){
@@ -76,10 +67,6 @@ public class BlockChain {
                 else if (ratio - current_ratio > delta){
                     maxBlockSize *= 2;
                 }
-                System.out.println("------------------------------------");
-                System.out.println("new block size is " + maxBlockSize);
-                System.out.println("------------------------------------");
-                System.out.println("created in zoo!");
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -110,12 +97,11 @@ public class BlockChain {
         try {
             List<String> alivePorts = zk.getChildren(portRoot, null);
             for (String port : alivePorts){
-                System.out.println("trying to restore from: " + port);
-                if (port.equals(ClientController.port)){
+                if (ClientController.port == Integer.parseInt(port)){
                     continue;
                 }
                 String blockJson = Utils.getHTML("http://localhost:" + port + "/restoreHelp?blockData=" + URLEncoder.encode(blockData,"UTF-8"));
-                if (blockJson == null || blockJson.equals("") || blockJson.contains("null") || blockJson.equals("{}")){
+                if (blockJson.equals("") || blockJson.contains("null") || blockJson.equals("{}")){
                     continue;
                 }
                 Block block = new Gson().fromJson(blockJson, Block.class);
@@ -129,9 +115,6 @@ public class BlockChain {
     }
 
     public void addPermenantBlock(String blockData){
-        System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-        System.out.println("block metadata is: " + blockData);
-        System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
         int port = Integer.parseInt(blockData.split("~")[0]);
         String timestamp = blockData.split("~")[1];
         if (port < 0){
@@ -169,10 +152,6 @@ public class BlockChain {
 
     public List<Integer> getBlockSizeHistory(){
         return this.blockSizeHistory;
-    }
-
-    public void addBlock(Block block) {
-        this.blist.add(block);
     }
 
     public Block getPendingBy(Integer port, final String timestamp) {
